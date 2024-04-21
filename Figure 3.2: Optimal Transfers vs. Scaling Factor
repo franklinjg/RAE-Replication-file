@@ -319,7 +319,7 @@ for phi in phi_values:
 def objective_function(s, b_M):
     return -np.sum(b_M * np.log(s))
 
-# Initializs a dictionary to store the optimal transfers for each Psi for plotting
+# Initializs a dictionary to store the optimal transfers for each phi for plotting
 optimal_transfers_for_plotting = {i: [] for i in range(n)}  # This assumes you want to plot all n entries
 
 # Loop over each Psi value to calculate b_M and solve the maximization problem
@@ -353,7 +353,7 @@ for phi in phi_values:
 
 plt.figure(figsize=(10, 5))
 for idx in x_entries.keys():
-    plt.plot(phi_values, [optimal_transfers_for_plotting[idx][i] for i, Psi in enumerate(phi_values)], label=f'Entry {idx + 1}')
+    plt.plot(phi_values, [optimal_transfers_for_plotting[idx][i] for i, phi in enumerate(phi_values)], label=f'Entry {idx + 1}')
 plt.xlabel(r'$\phi$')
 plt.ylabel('Optimal Transfer')
 plt.title('Optimal Transfers vs. Scaling Factor')
