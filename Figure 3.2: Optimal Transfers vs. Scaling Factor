@@ -28,6 +28,7 @@ for package, import_command in required_packages.items():
 # Confirm the imports (optional)
 print("All packages are installed and imported successfully.")
 
+
 np.random.seed(4862)
 
 
@@ -288,56 +289,36 @@ for phi in phi_values:
 
 ############################################################################################################################################################################
 
+
 I = np.eye(n)  # Identity matrix of size n x n
 ones_vector = np.ones((n, 1))  # Vector of ones of size n x 1
 
-# Loop over each phi value
-for phi in phi_values:
-    # Calculate the value from the phistar function
-    phistar_value = phistar(phi)  
-    
-    # Calculate the matrix inside the brackets more efficiently
-    matrix_inside_brackets = I - (phistar_value * G_transpose + Psi * transposed_matrixJ @ V)
-
-    # Solve the linear system instead of inverting the matrix directly for numerical stability
-    b_M = solve(matrix_inside_brackets, ones_vector)  # Solve the linear system
-
-    print(f"phi: {phi:.2f}, The Katz-Bonacich centrality vector b_M is:")
-    print(b_M)
-    b_M_array = b_M.flatten()  # Flatten the matrix to a 1D array if needed for further processing
-    print("Matrix as array:")
-    print(b_M_array)
-
-
-
-
+# Initialize a dictionary to store the optimal transfers for each phi
+optimal_transfers_for_plotting = {i: [] for i in range(n)}
 
 # Define the objective function to be maximized (negative because minimize() finds the minimum)
 def objective_function(s, b_M):
     return -np.sum(b_M * np.log(s))
 
-# Initializs a dictionary to store the optimal transfers for each phi for plotting
-optimal_transfers_for_plotting = {i: [] for i in range(n)}  # This assumes you want to plot all n entries
-
-# Loop over each Psi value to calculate b_M and solve the maximization problem
+# Loop over each phi value
 for phi in phi_values:
     phistar_value = phistar(phi)  # Compute phistar for the current phi
-    matrix_inside_brackets = I - (phistar_value * G_transpose + (Psi * transposed_matrixJ) @ V)
+    matrix_inside_brackets = I - (phistar_value * G_transpose + Psi * transposed_matrixJ @ V)
 
     # Check if the matrix is invertible (determinant is not zero)
     if np.linalg.det(matrix_inside_brackets) != 0:
-        # Solve the linear system instead of inverting the matrix directly for numerical stability
-        b_M = solve(matrix_inside_brackets, np.ones(n))  # Solve the linear system
+        b_M = solve(matrix_inside_brackets, ones_vector)  # Solve the linear system
         b_M_array = b_M.flatten()  # Flatten the matrix to a 1D array
 
-        # Now that we have b_M_array for this Psi, we can run the optimization
+        print(f"phi: {phi:.2f}, The Katz-Bonacich centrality vector b_M is:")
+        print(b_M)
+
+        # Now that we have b_M_array for this phi, we can run the optimization
         constraints = {'type': 'eq', 'fun': lambda s: np.sum(s) - X}
         bounds = [(1e-5, None)] * len(b_M_array)
         initial_s = np.full(len(b_M_array), X / len(b_M_array))
 
-        # Run the optimization algorithm
         result = minimize(objective_function, initial_s, args=(b_M_array), bounds=bounds, constraints=constraints)
-
         if result.success:
             # Store the optimal vector of transfers for this phi for plotting
             s_optimal = result.x
@@ -347,6 +328,9 @@ for phi in phi_values:
             print(f"Optimization failed for phi = {phi}")
     else:
         print(f"Matrix not invertible for phi = {phi}")
+
+# If needed, plotting or further data handling can be done here with `optimal_transfers_for_plotting`
+
 
 plt.figure(figsize=(10, 5))
 for idx in x_entries.keys():
