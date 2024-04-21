@@ -98,15 +98,34 @@ n = 429
 
 ############################################################################################################################################################################
 
-
 def store_matrix_entries(matrix):
+    # Create an empty dictionary to hold the entries of the matrix
     stored_entries = {}
+
+    # Determine the size of the matrix (assuming it's square)
     n = matrix.shape[0]
+
+    # Loop over each row of the matrix
     for i in range(n):
+        # Loop over each column of the matrix
         for j in range(n):
+            # Create a unique identifier for each element of the matrix
+            # This identifier follows the format "g_rowcolumn", starting from 1 (e.g., "g_11" for the top-left element)
             identifier = f"g_{i+1}{j+1}"
+
+            # Store each element of the matrix in the dictionary with its unique identifier as the key
             stored_entries[identifier] = matrix[i, j]
+
+    # Return the dictionary containing all matrix entries
+    # This dictionary can be used for quick reference to any element of the matrix by its "g_rowcolumn" identifier
     return stored_entries
+
+# Example usage:
+# Assuming you have a numpy array 'matrix' which you want to store
+# entries_dict = store_matrix_entries(matrix)
+# Now 'entries_dict' will hold all the values of the matrix,
+# which you can access using their respective identifiers.
+
 
 # URL of the raw R data file on GitHub
 url = 'https://raw.githubusercontent.com/franklinjg/RAE/29da2338741e37a621442490179455c570402bf4/G_party.rda'
@@ -144,46 +163,85 @@ else:
 
 ############################################################################################################################################################################
 
-# Function to generate an n x n diagonal matrix V and save the diagonal elements as v1, v2, ..., vn
+# Function to generate an n x n diagonal matrix V with non-zero diagonal elements
+# and save the diagonal elements as v1, v2, ..., vn
 def generate_and_save_diagonal_matrix(n):
-    # Define the possible values for the diagonal elements
+    """
+    This function generates an n x n diagonal matrix V where each diagonal element
+    is randomly selected from a set of specified non-zero values.
+    It then saves this matrix to a file and also returns the matrix along with the diagonal elements.
+    
+    Parameters:
+    n (int): The size of the matrix (number of rows/columns)
+    
+    Returns:
+    tuple: A tuple containing the matrix V, the filename it was saved as,
+           a dictionary of diagonal elements, and an array of diagonal values.
+    """
+    
+    # Define the possible non-zero values for the diagonal elements
     possible_values_diagonal = [-1, 1, 0.5, -0.5]
+    
+    # Create an n x n matrix filled with zeros
     V = np.zeros((n, n))
+    
+    # Set each diagonal element to a randomly chosen value from the possible values
     for i in range(n):
         V[i, i] = np.random.choice(possible_values_diagonal)
+        
+        # If zero is randomly chosen, re-pick until a non-zero is chosen
+        while V[i, i] == 0:
+            V[i, i] = np.random.choice(possible_values_diagonal)
+    
+    # Save the matrix to a binary file in NumPy .npy format
     filename = f'V{n}.npy'
     np.save(filename, V)
+    
+    # Extract the diagonal elements into a separate array
     v_elements = np.diag(V)
+    
+    # Create a dictionary to hold the diagonal elements with their corresponding variable names
     v_dict = {f'v{i+1}': v_elements[i] for i in range(n)}
-    return V, filename, v_dict, v_elements  # Return the diagonal elements as part of the output
+    
+    # Return the matrix, filename, dictionary, and array of diagonal values
+    return V, filename, v_dict, v_elements
 
 # Generate the matrix and get the diagonal values
 V, filename, v_dict, v_values = generate_and_save_diagonal_matrix(n)  # Now v_values is defined
 
 
-# Iterate over each Psi value to compute matrices and check invertibility
+# Iterate over Psi to compute and analyze Katz-Bonacich centrality vectors
 for Psi in Psi_values:
-    # Step 1: Compute the matrix to invert using a fixed phi and current Psi
-    I = np.eye(n)  # Identity matrix of size nxn
-    phistar_value = phistar(Psi)  # Compute phistar for the current Psi
+    # Create identity matrix
+    I = np.eye(n)
+    
+    # Calculate the phistar value for current Psi
+    phistar_value = phistar(Psi)
+    
+    # Formulate the matrix for inversion based on phistar_value and the network matrix G
     matrix_to_invert = I - phistar_value * Gn
-
-    # Step 2: Check if the matrix is invertible (determinant is not zero)
+    
+    # Check the invertibility of the matrix
     is_invertible = np.linalg.det(matrix_to_invert) != 0
-
-    # Step 3: If invertible, compute the inverse and the Katz-Bonacich vector
+    
     if is_invertible:
+        # Invert the matrix to compute the Katz-Bonacich centrality vector
         inverse_matrix = np.linalg.inv(matrix_to_invert)
-        # Step 4: Multiply the inverse by a vector of ones
+        
+        # Multiply the inverse with a vector of ones to obtain the centrality vector
         katz_bonacich_vector = inverse_matrix.dot(np.ones(n))
-        # Step 5: Check if all elements of the resulting vector are positive
+        
+        # Verify that all centrality values are positive, as required
         all_positive = np.all(katz_bonacich_vector > 0)
     else:
-        all_positive = False  # If the matrix is not invertible, the assumption does not hold
+        # If not invertible, the vector cannot be computed
+        all_positive = False
 
-    # Result
+    # Determine if Assumption 2 is satisfied
     assumption_2_holds = is_invertible and all_positive
+    # Output the result for the current Psi value
     print(f"Psi: {Psi}, Does Assumption 2 hold?: {assumption_2_holds}")
+
 
 
 ############################################################################################################################################################################
@@ -201,70 +259,95 @@ for Psi in Psi_values:
 
 ############################################################################################################################################################################
 
-# Function to calculate pivotal probabilities
+# Function to calculate pivotal probabilities for a given strategy profile x
 def calculate_pivotal_probabilities(x):
+    # Compute half of the size of x for the pivotal event's threshold
     half_n = (len(x) - 1) // 2
+    # Initialize an array to hold pivotal probabilities for each player
     pivotal_probs = np.zeros(len(x))
+    # Define a small positive value to avoid log(0) in calculations
     epsilon = 1e-10
+    # Precompute logarithms of combinatorial terms for efficiency
     log_comb = np.array([np.log(comb(len(x) - 1, j)) for j in range(half_n)])
     
+    # Calculate the probability of being pivotal for each player
     for i in range(len(x)):
+        # Exclude the current player's probability when considering others
         others = np.concatenate((x[:i], x[i+1:]))
+        # Ensure probabilities are within (0,1) using epsilon
         others = np.clip(others, epsilon, 1 - epsilon)
+        # Calculate log probabilities for being pivotal based on others' strategies
         if i != len(x) - 1:
             log_probs = log_comb + np.log(others[:half_n]) + np.log(1 - others[half_n:])
         else:
+            # Use the same computation for the last player
             log_probs = log_comb + np.log(others[:half_n]) + np.log(1 - others[half_n:])
+        # Sum the exponentiated log probabilities for numerical stability
         pivotal_probs[i] = np.exp(logsumexp(log_probs))
-
+    
+    # Normalise by the total number of pivotal combinations
     return pivotal_probs / (2**(len(x) - 1))
+
 
 # Function to solve the system for each Psi
 def solve_system(v, phi, Psi_values, Gn, pivotal_prob_func, tolerance=1e-6, max_iterations=1000):
     n = len(v)
     results = {}
     
+    # Iterate over each Psi value to find stable strategies
     for Psi in Psi_values:
-        x = np.full(n, 0.5)  # Initial guess for each Psi
+        x = np.full(n, 0.5)  # Initialise each strategy profile to 0.5 as a starting guess
+        # Iteratively update strategies until convergence or maximum iterations are reached
         for iteration in range(max_iterations):
-            pivotal_probs = pivotal_prob_func(x)
+            pivotal_probs = pivotal_prob_func(x)  # Calculate pivotal probabilities for the current profile
             x_new = np.empty(n)
+            # Update each strategy based on the influence of neighbours and the system's parameters
             for i in range(n):
+                # Calculate the weighted sum of influences for player i
                 sum_gx = sum(Gn[i, j] * np.clip(2 * x[j]- 1, 1e-10, 1-1e-10) for j in range(n))
+                # Update strategy using the current game parameters
                 x_new[i] = np.clip(0.5 + Psi * (v[i] * pivotal_probs[i] + Psi * phi * sum_gx), 1e-10, 1-1e-10)
 
+            # Check for convergence by comparing the new strategy profile with the old
             if np.allclose(x, x_new, atol=tolerance):
                 results[Psi] = x_new
                 break
             x = x_new
         else:
+            # If convergence was not reached, record this Psi as not converging
             print(f"Did not converge for Psi: {Psi}")
             results[Psi] = None
 
     return results
 
-# Function to compute the Jacobian
+
 def compute_jacobian(x, pivotal_prob_func, h=1e-5):
-    n = len(x)
-    jacobian = np.zeros((n, n))
+    n = len(x)  # Determine the number of strategies or agents
+    jacobian = np.zeros((n, n))  # Initialise the Jacobian matrix with zeros
     
+    # Compute the Jacobian by finite difference approximation
     for j in range(n):
         x1 = x.copy()
         x2 = x.copy()
-        x1[j] -= h / 2
-        x2[j] += h / 2
-        f1 = pivotal_prob_func(x1)
-        f2 = pivotal_prob_func(x2)
+        x1[j] -= h / 2  # Perturb x downwards
+        x2[j] += h / 2  # Perturb x upwards
+        f1 = pivotal_prob_func(x1)  # Compute function value at x1
+        f2 = pivotal_prob_func(x2)  # Compute function value at x2
+        # Calculate the derivative (rate of change) for each strategy
         jacobian[:, j] = (f2 - f1) / h
 
     return jacobian
 
-# Run the model for each Psi and compute Jacobians
+# Run the model for each Psi value to assess sensitivity and stability
 for Psi in Psi_values:
+    # Solve the system for current Psi and get strategic profiles
     results = solve_system(v_values, phi, Psi_values, Gn, calculate_pivotal_probabilities)
-    if results[Psi] is not None:
+    if results[Psi] is not None:  # Check if the system converged
+        # Compute Jacobian matrix for the converged profiles
         jacobian_matrix = compute_jacobian(results[Psi], calculate_pivotal_probabilities)
-        transposed_matrixJ = jacobian_matrix.T  # Calculate the transpose of the Jacobian
+        # Transpose the Jacobian matrix to prepare for other computations
+        transposed_matrixJ = jacobian_matrix.T  # Transpose for further analysis or processing
+
         
 
 ############################################################################################################################################################################
@@ -298,6 +381,8 @@ for Psi in Psi_values:
     print(b_M_array)
 
 
+
+# There is probably a more efficient way of doing this. Feel free to change it. 
 
     # Store the entries
     x1.append(b_M_array[15])
