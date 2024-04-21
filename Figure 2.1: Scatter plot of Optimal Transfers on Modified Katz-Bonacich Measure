@@ -17,6 +17,26 @@ Special thanks to my friend Nishanth for his helpful comments. P.D. My code does
 """
 
 
+import subprocess
+import sys
+
+def install(package):
+    subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+
+# List of packages to install
+packages = [
+    "numpy", "pandas", "sympy", "scipy", "matplotlib", "networkx",
+    "requests", "pyreadr", "statsmodels"
+]
+
+# Install packages if not already installed
+for package in packages:
+    try:
+        __import__(package)
+    except ImportError:
+        install(package)
+
+# Now import all required libraries
 import numpy as np
 import pandas as pd
 from sympy import Matrix
@@ -30,8 +50,8 @@ import pyreadr
 import os
 import tempfile
 import statsmodels.api as sm
-from scipy.linalg import solve 
-import requests
+from scipy.linalg import solve
+
 
 
 np.random.seed(4862)
@@ -341,3 +361,4 @@ plt.ylabel('Optimal Transfers')
 plt.legend()
 plt.grid(True)
 plt.show()
+
