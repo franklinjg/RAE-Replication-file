@@ -144,18 +144,48 @@ else:
 
 ############################################################################################################################################################################
 
-# Function to generate an n x n diagonal matrix V and save the diagonal elements as v1, v2, ..., vn
+# Function to generate an n x n diagonal matrix V with non-zero diagonal elements
+# and save the diagonal elements as v1, v2, ..., vn
 def generate_and_save_diagonal_matrix(n):
-    # Define the possible values for the diagonal elements
+    """
+    This function generates an n x n diagonal matrix V where each diagonal element
+    is randomly selected from a set of specified non-zero values.
+    It then saves this matrix to a file and also returns the matrix along with the diagonal elements.
+    
+    Parameters:
+    n (int): The size of the matrix (number of rows/columns)
+    
+    Returns:
+    tuple: A tuple containing the matrix V, the filename it was saved as,
+           a dictionary of diagonal elements, and an array of diagonal values.
+    """
+    
+    # Define the possible non-zero values for the diagonal elements
     possible_values_diagonal = [-1, 1, 0.5, -0.5]
+    
+    # Create an n x n matrix filled with zeros
     V = np.zeros((n, n))
+    
+    # Set each diagonal element to a randomly chosen value from the possible values
     for i in range(n):
         V[i, i] = np.random.choice(possible_values_diagonal)
+        
+        # If zero is randomly chosen, re-pick until a non-zero is chosen
+        while V[i, i] == 0:
+            V[i, i] = np.random.choice(possible_values_diagonal)
+    
+    # Save the matrix to a binary file in NumPy .npy format
     filename = f'V{n}.npy'
     np.save(filename, V)
+    
+    # Extract the diagonal elements into a separate array
     v_elements = np.diag(V)
+    
+    # Create a dictionary to hold the diagonal elements with their corresponding variable names
     v_dict = {f'v{i+1}': v_elements[i] for i in range(n)}
-    return V, filename, v_dict, v_elements  # Return the diagonal elements as part of the output
+    
+    # Return the matrix, filename, dictionary, and array of diagonal values
+    return V, filename, v_dict, v_elements
 
 # Generate the matrix and get the diagonal values
 V, filename, v_dict, v_values = generate_and_save_diagonal_matrix(n)  # Now v_values is defined
@@ -171,19 +201,26 @@ x_entries = {index: [] for index in indices}
 
 # Iterate over each Psi value to compute matrices and check invertibility
 for Psi in Psi_values:
+    # Create an identity matrix of size n x n
     I = np.eye(n)
+    # Compute the phistar value for the current Psi using the phistar function
     phistar_value = phistar(Psi)
+    # Calculate the matrix to invert based on the phistar value and matrix Gn
     matrix_to_invert = I - phistar_value * Gn
 
+    # Check if the matrix is invertible by checking if its determinant is non-zero
     is_invertible = np.linalg.det(matrix_to_invert) != 0
 
     if is_invertible:
+        # If the matrix is invertible, compute its inverse
         inverse_matrix = np.linalg.inv(matrix_to_invert)
+        # Multiply the inverse by a vector of ones to get the Katz-Bonacich centrality vector
         katz_bonacich_vector = inverse_matrix.dot(np.ones(n))
 
-        # Append the specified entries of the vector
+        # Append the specified entries of the Katz-Bonacich centrality vector to their corresponding lists
         for index in indices:
             x_entries[index].append(katz_bonacich_vector[index])
+
 
 # Plotting
 plt.figure(figsize=(15, 10))
