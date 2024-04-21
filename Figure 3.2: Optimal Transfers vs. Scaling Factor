@@ -293,7 +293,7 @@ for phi in phi_values:
 
 I = np.eye(n)  # Identity matrix of size n x n
 ones_vector = np.ones((n, 1))  # Vector of ones of size n x 1
-V_diag = np.diag(V)  # Diagonal elements of the matrix V
+
 
 
 # Loop over each phi value
@@ -302,7 +302,7 @@ for phi in phi_values:
     phistar_value = phistar(phi)  
     
     # Calculate the matrix inside the brackets more efficiently
-    matrix_inside_brackets = I - (phistar_value * G_transpose + Psi * transposed_matrixJ @ V_diag)
+    matrix_inside_brackets = I - (phistar_value * G_transpose + Psi * transposed_matrixJ @ V)
 
     # Solve the linear system instead of inverting the matrix directly for numerical stability
     b_M = solve(matrix_inside_brackets, ones_vector)  # Solve the linear system
