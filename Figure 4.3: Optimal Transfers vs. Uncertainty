@@ -331,7 +331,7 @@ optimal_transfers_for_plotting = {i: [] for i in range(n)}  # This assumes you w
 # Loop over each Psi value to calculate b_M and solve the maximization problem
 for Psi in Psi_values:
     phistar_value = phistar(Psi)  # Compute phistar for the current Psi
-    matrix_inside_brackets = I - (phistar_value * G_transpose + Psi * transposed_matrixJ @ V_diag)
+    matrix_inside_brackets = I - (phistar_value * G_transpose + Psi * transposed_matrixJ @ V)
 
     # Check if the matrix is invertible (determinant is not zero)
     if np.linalg.det(matrix_inside_brackets) != 0:
