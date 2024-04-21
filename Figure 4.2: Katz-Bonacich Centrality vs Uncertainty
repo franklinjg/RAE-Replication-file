@@ -1,3 +1,31 @@
+# The following code installs the required packages. 
+
+import sys         # These are Python libraries so no need to install them.
+import subprocess
+
+# Function to install packages
+def install_package(package):
+    subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+
+# List of required packages
+required_packages = [
+    "numpy",
+    "pandas",
+    "sympy",
+    "scipy",
+    "matplotlib",
+    "requests",
+    "pyreadr"
+]
+
+# Try to import the packages, install if they're not found
+for package in required_packages:
+    try:
+        __import__(package)
+    except ImportError:
+        install_package(package)
+
+# Now we can safely import the packages
 import numpy as np
 import pandas as pd
 from sympy import Matrix
@@ -8,7 +36,8 @@ import requests
 import pyreadr
 import os
 import tempfile
-from scipy.linalg import solve  
+from scipy.linalg import solve
+
 
 np.random.seed(4862)         # I use this seed throughout my code so if you want to replicate my results use this one. 
 
