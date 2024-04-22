@@ -1,0 +1,234 @@
+# The following code installs the required packages. 
+
+import sys         # These are Python libraries so no need to install them.
+import subprocess
+
+# Function to install packages
+def install_package(package):
+    subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+
+# List of required packages
+required_packages = [
+    "numpy",
+    "pandas",
+    "sympy",
+    "scipy",
+    "matplotlib",
+    "requests",
+    "pyreadr"
+]
+
+# Try to import the packages, install if they're not found
+for package in required_packages:
+    try:
+        __import__(package)
+    except ImportError:
+        install_package(package)
+
+# Now we can safely import the packages
+import numpy as np
+import pandas as pd
+from sympy import Matrix
+from scipy.optimize import minimize
+from scipy.special import comb, logsumexp
+import matplotlib.pyplot as plt
+import requests
+import pyreadr
+import os
+import tempfile
+from scipy.linalg import solve
+
+
+np.random.seed(4862)         # I use this seed throughout my code so if you want to replicate my results use this one. 
+
+
+# Arrays to store the results
+x1 = []
+x2 = []
+x3 = []
+x4 = []
+x5 = []
+x6 = []
+x7 = []
+x8 = []
+x9 = []
+x10 = []
+x11 = []
+x12 = []
+x13 = []
+x14 = []
+x15 = []
+x16 = []
+x17 = []
+x18 = []
+x19 = []
+x20 = []
+x21 = []
+x22 = []
+x23 = []
+x24 = []
+x25 = []
+x26 = []
+x27 = []
+x28 = []
+x29 = []
+x30 = []
+
+
+
+############################################################################################################################################################################
+
+# Generating the constants and storing them 
+
+phi_values = np.linspace(0.1, 0.98, 100) 
+Psi = 0.10      # Making the interval smallers will give you the same graph (I tried it)            
+X = 5.0                                     # This is the budget of the interest groups which is used in the computation of the optimal transfers.
+q = 0.5                                     # This is the value of q which is used in the computation of the pivotal probabilities. (q-rule).      
+                                            # This is the value of phi* which is used in the computation of the Katz-Bonacich centrality vector.
+vmax = 1.0                                  # This is the maximum value of the diagonal elements of the matrix V.
+
+# Function to compute phistar for a given Psi
+def phistar(phi):
+    return 2 * Psi * phi
+
+
+# Number of Legislators. 
+
+n = 429
+
+############################################################################################################################################################################
+
+
+def store_matrix_entries(matrix):
+    stored_entries = {}
+    n = matrix.shape[0]
+    for i in range(n):
+        for j in range(n):
+            identifier = f"g_{i+1}{j+1}"
+            stored_entries[identifier] = matrix[i, j]
+    return stored_entries
+
+# URL of the raw R data file on GitHub
+url = 'https://raw.githubusercontent.com/franklinjg/RAE/29da2338741e37a621442490179455c570402bf4/G_party.rda'
+
+# Make a request to get the content of the .rda file
+response = requests.get(url)
+if response.status_code == 200:
+    # Create a temporary file
+    with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+        tmp_file.write(response.content)
+        tmp_file_path = tmp_file.name
+
+    # Read the R data file from the temporary file
+    result = pyreadr.read_r(tmp_file_path)
+
+    # Optionally delete the temporary file if you're done with it
+    os.remove(tmp_file_path)
+
+    # Now you can use 'result' as a normal result object from pyreadr
+    print(result.keys())  # For example, to print the keys of the loaded R data
+
+    # Assuming 'G_party' is the key for the data in the .rda file
+    G_party = result['G_party']
+
+    # Extract the 429x429 block from the DataFrame and convert it to a numpy matrix
+    Gn = G_party.iloc[0:429, 0:429].values
+
+    # Transpose the numpy matrix G
+    G_transpose = Gn.T
+
+    # Storing matrix entries in a dictionary from the extracted block
+    entries_dict = store_matrix_entries(Gn)
+else:
+    print("Failed to fetch the file: Status code", response.status_code)
+
+############################################################################################################################################################################
+
+# Function to generate an n x n diagonal matrix V with non-zero diagonal elements
+# and save the diagonal elements as v1, v2, ..., vn
+def generate_and_save_diagonal_matrix(n):
+    """
+    This function generates an n x n diagonal matrix V where each diagonal element
+    is randomly selected from a set of specified non-zero values.
+    It then saves this matrix to a file and also returns the matrix along with the diagonal elements.
+    
+    Parameters:
+    n (int): The size of the matrix (number of rows/columns)
+    
+    Returns:
+    tuple: A tuple containing the matrix V, the filename it was saved as,
+           a dictionary of diagonal elements, and an array of diagonal values.
+    """
+    
+    # Define the possible non-zero values for the diagonal elements
+    possible_values_diagonal = [-1, 1, 0.5, -0.5]
+    
+    # Create an n x n matrix filled with zeros
+    V = np.zeros((n, n))
+    
+    # Set each diagonal element to a randomly chosen value from the possible values
+    for i in range(n):
+        V[i, i] = np.random.choice(possible_values_diagonal)
+        
+        # If zero is randomly chosen, re-pick until a non-zero is chosen
+        while V[i, i] == 0:
+            V[i, i] = np.random.choice(possible_values_diagonal)
+    
+    # Save the matrix to a binary file in NumPy .npy format
+    filename = f'V{n}.npy'
+    np.save(filename, V)
+    
+    # Extract the diagonal elements into a separate array
+    v_elements = np.diag(V)
+    
+    # Create a dictionary to hold the diagonal elements with their corresponding variable names
+    v_dict = {f'v{i+1}': v_elements[i] for i in range(n)}
+    
+    # Return the matrix, filename, dictionary, and array of diagonal values
+    return V, filename, v_dict, v_elements
+
+# Generate the matrix and get the diagonal values
+V, filename, v_dict, v_values = generate_and_save_diagonal_matrix(n)  # Now v_values is defined
+
+
+# Specified indices (adjusted for zero-based indexing)
+indices = [15, 143, 221, 145, 126, 23, 333, 3, 410, 299,
+           1, 147, 291, 101, 121, 29, 397, 9, 421, 234,
+           55, 66, 77, 99, 88, 148, 111, 222, 332, 402]
+
+# Arrays to store the specific entries' transfers
+x_entries = {index: [] for index in indices}
+
+# Iterate over each Psi value to compute matrices and check invertibility
+for phi in phi_values:
+    # Create an identity matrix of size n x n
+    I = np.eye(n)
+    # Compute the phistar value for the current Psi using the phistar function
+    phistar_value = phistar(phi)
+    # Calculate the matrix to invert based on the phistar value and matrix Gn
+    matrix_to_invert = I - phistar_value * Gn
+
+    # Check if the matrix is invertible by checking if its determinant is non-zero
+    is_invertible = np.linalg.det(matrix_to_invert) != 0
+
+    if is_invertible:
+        # If the matrix is invertible, compute its inverse
+        inverse_matrix = np.linalg.inv(matrix_to_invert)
+        # Multiply the inverse by a vector of ones to get the Katz-Bonacich centrality vector
+        katz_bonacich_vector = inverse_matrix.dot(np.ones(n))
+
+        # Append the specified entries of the Katz-Bonacich centrality vector to their corresponding lists
+        for index in indices:
+            x_entries[index].append(katz_bonacich_vector[index])
+
+
+# Plotting
+plt.figure(figsize=(15, 10))
+for index in indices:
+    plt.plot(phi_values, x_entries[index], label=f'Entry {index+1}')
+
+plt.xlabel(r'$\phi$')
+plt.ylabel('Katz-Bonacich Centrality')
+plt.title('Katz-Bonacich Centrality vs. Scaling Factor')
+plt.grid(True)
+plt.show()
