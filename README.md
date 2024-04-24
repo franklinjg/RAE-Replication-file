@@ -7,8 +7,7 @@ Version of Python I used: 3.12.1
 
 My computer has 8GB of RAM but this code should run in any computer if left for a long enough time. 
 
-If you are interested in replicating my code please go to RequiredLibraries and run it. It will install all the necessary libraries. 
-
+If you are interested in replicating, coping, distributing my code then you are welcome to do so. Open Source Code is the FUTURE.
 
 
 ## Acknowledgements
